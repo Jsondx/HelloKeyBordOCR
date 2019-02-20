@@ -272,20 +272,22 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 case 2://裁剪返回的结果
                     Glide.with(MainActivity.this).load(savePath).into(ivPhoto);
-//                    ImageUtils.onCompressedUpload(this,savePath,ivPhoto);
-                    String absolutePath = savePath.getAbsolutePath();
-                    ConnectionDetector connectionDetector = new ConnectionDetector(getApplication());
-                    if (connectionDetector.isConnectingTOInternet()) {
-                        if (null != absolutePath) {
-                            pd = ProgressDialog.show(MainActivity.this, "", "正在识别请稍后......");
-                            DiscernThread discernThread = new DiscernThread();
-                            new Thread(discernThread).start();
-                        } else {
-                            ToastUtils.showShort("请选择图片后再试");
-                        }
-                    } else {
-                        ToastUtils.showShort("网络连接失败，请检查网络后重试！");
-                    }
+                    ImageUtils.onCompressedUpload(this,savePath,ivPhoto);
+
+
+//                    String absolutePath = savePath.getAbsolutePath();
+//                    ConnectionDetector connectionDetector = new ConnectionDetector(getApplication());
+//                    if (connectionDetector.isConnectingTOInternet()) {
+//                        if (null != absolutePath) {
+//                            pd = ProgressDialog.show(MainActivity.this, "", "正在识别请稍后......");
+//                            DiscernThread discernThread = new DiscernThread();
+//                            new Thread(discernThread).start();
+//                        } else {
+//                            ToastUtils.showShort("请选择图片后再试");
+//                        }
+//                    } else {
+//                        ToastUtils.showShort("网络连接失败，请检查网络后重试！");
+//                    }
                     break;
             }
         }

@@ -1,6 +1,9 @@
 package json.ldx.com.helloword;
 
+import android.app.Activity;
 import android.app.Application;
+import android.content.Context;
+import android.os.Bundle;
 
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.cache.CacheEntity;
@@ -17,18 +20,19 @@ import okhttp3.OkHttpClient;
  */
 
 public class MyApp extends Application {
+
+    public static Activity activitys = null;
+
     @Override
     public void onCreate() {
         super.onCreate();
-
-
 
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
         //log相关
         HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor("OkGo");
         //log打印级别，决定了log显示的详细程度
 //        if (BuildConfig.DEBUG) {
-            loggingInterceptor.setPrintLevel(HttpLoggingInterceptor.Level.BODY);
+        loggingInterceptor.setPrintLevel(HttpLoggingInterceptor.Level.BODY);
 //        } else {
 //            loggingInterceptor.setPrintLevel(HttpLoggingInterceptor.Level.NONE);
 //        }
@@ -54,6 +58,46 @@ public class MyApp extends Application {
                 .setCacheTime(CacheEntity.CACHE_NEVER_EXPIRE)
                 .setRetryCount(3);
 
+
+
+
+
+        this.registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
+            @Override
+            public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+
+            }
+
+            @Override
+            public void onActivityStarted(Activity activity) {
+                activitys = activity;
+            }
+
+            @Override
+            public void onActivityResumed(Activity activity) {
+
+            }
+
+            @Override
+            public void onActivityPaused(Activity activity) {
+
+            }
+
+            @Override
+            public void onActivityStopped(Activity activity) {
+
+            }
+
+            @Override
+            public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
+
+            }
+
+            @Override
+            public void onActivityDestroyed(Activity activity) {
+
+            }
+        });
 
     }
 }

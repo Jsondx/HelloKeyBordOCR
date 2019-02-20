@@ -47,6 +47,9 @@ dependencies {
     implementation 'com.github.bumptech.glide:glide:4.8.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.8.0'
     implementation 'com.lzy.net:okgo:3.0.4'
+    implementation 'com.alibaba:fastjson:1.1.70.android'
     implementation files('libs/Hanvon_SDK_Android_1.0.jar')
     implementation project(':MathKeyboard')
+    implementation files('libs/netty-all-4.1.15.Final.jar')
+    implementation files('libs/commons-codec-1.6.jar')
 }

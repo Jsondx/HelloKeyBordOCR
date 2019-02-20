@@ -6,31 +6,41 @@ import android.graphics.Canvas;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
+import android.net.ParseException;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
 import android.support.v4.content.FileProvider;
+import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
 import android.widget.ImageView;
 
-import com.blankj.utilcode.util.GsonUtils;
+import com.blankj.utilcode.util.ToastUtils;
 import com.bumptech.glide.Glide;
-import com.hanvon.HWCloudManager;
+import com.google.gson.Gson;
+
+import org.apache.commons.codec.digest.DigestUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Administrator on 2019/2/18 0018.
  */
 
 public class ImageUtils {
-    private static   final int MAXBYTE = 204800;
-    private static  FileInputStream f;
+    private static final int MAXBYTE = 204800;
+    private static FileInputStream f;
 
     /**
      * 判断是否压缩
@@ -38,20 +48,20 @@ public class ImageUtils {
      *
      * @param file
      */
-    public  static void onCompressedUpload(Context context, File file, ImageView view) {
+    public static void onCompressedUpload(Context context, File file, ImageView view) {
         try {
             f = new FileInputStream(file);
             int available = f.available();
-            Log.e("TAG", "size + " + available);
             //
-            if (available > MAXBYTE) {
-                //进行压缩操作
-                Log.e("TAG", "压缩");
-            } else {
-                //上传服务器
-                Log.e("TAG", "上传服务器");
-                toFileBase64(context, file, view);
-            }
+//            if (available > MAXBYTE) {
+//                //进行压缩操作
+//                Log.e("TAG", "压缩");
+//            } else {
+//                //上传服务器
+//                Log.e("TAG", "上传服务器");
+//                toFileBase64(context, file, view);
+//            }
+            toFileBase64(context, file, view);
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -166,18 +176,111 @@ public class ImageUtils {
         return uri;
     }
 
+
+    // 手写文字识别webapi接口地址
+    private static final String WEBOCR_URL = "http://webapi.xfyun.cn/v1/service/v1/ocr/handwriting";
+    // 测试应用ID
+    private static final String TEST_APPID = "5c6cb869";
+    // 测试接口密钥
+    private static final String TEST_API_KEY = "7b3ed8ff3653f40e822b9029cfb5a23f";
+
+
     /**
      * 上传base 64 到汉王
      *
      * @param ivBase64
      */
     public static void onUploadImage(String ivBase64) {
-        HanVanBean hanVanBean = new HanVanBean();
-        hanVanBean.setUid("180.76.118.80");
-        hanVanBean.setColor("gray");
-        hanVanBean.setImage(ivBase64);
-        String json = GsonUtils.toJson(hanVanBean);
-        Log.e("TAG", "json   " + json);
+        try {
+            Map<String, String> header = constructHeader("en", "false");
+            HttpUtil.doPost(WEBOCR_URL, header, ivBase64, new CallBackInterface() {
+                @Override
+                public void onSuccess(String body) {
+                    Log.e("TAG", ImageUtils.class.getName() + ": " + body);
+                    if (!TextUtils.isEmpty(body)) {
+                        ResultBean resultBean = new Gson().fromJson(body, ResultBean.class);
+                        List<ResultBean.DataBean.BlockBean> block = resultBean.getData().getBlock();
+                        for (int i = 0; i < block.size(); i++) {
+                            ResultBean.DataBean.BlockBean blockBean = block.get(i);
+                            List<ResultBean.DataBean.BlockBean.LineBean> line = blockBean.getLine();
+                            for (int i1 = 0; i1 < line.size(); i1++) {
+                                ResultBean.DataBean.BlockBean.LineBean lineBean = line.get(i1);
+                                List<ResultBean.DataBean.BlockBean.LineBean.WordBean> word = lineBean.getWord();
+                                for (int i2 = 0; i2 < word.size(); i2++) {
+                                    ResultBean.DataBean.BlockBean.LineBean.WordBean wordBean = word.get(i2);
+                                    String content = wordBean.getContent();
+                                    Log.e("TAG", "content: " + content);
+                                }
+                            }
+                        }
+                    }
+                }
 
+                @Override
+                public void onError(String error) {
+                    ToastUtils.showShort("error: " + error);
+                }
+            });
+
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+
+    /**
+     * 组装http请求头
+     *
+     * @return
+     * @throws UnsupportedEncodingException
+     * @throws ParseException
+     */
+    private static Map<String, String> constructHeader(String language, String location) throws UnsupportedEncodingException, ParseException {
+        // 系统当前时间戳
+        String X_CurTime = System.currentTimeMillis() / 1000L + "";
+        // 业务参数
+        String param = "{\"language\":\"" + language + "\"" + ",\"location\":\"" + location + "\"}";
+        String X_Param = new String(org.apache.commons.codec.binary.Base64.encodeBase64(param.getBytes("UTF-8")));
+        // 接口密钥
+        String apiKey = TEST_API_KEY;
+        // 讯飞开放平台应用ID
+        String X_Appid = TEST_APPID;
+        // 生成令牌
+//        String X_CheckSum = DigestUtils.md5Hex(apiKey + X_CurTime + X_Param);
+        String X_CheckSum = md5(apiKey + X_CurTime + X_Param);
+
+        // 组装请求头
+        Map<String, String> header = new HashMap<String, String>();
+        header.put("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
+        header.put("X-Param", X_Param);
+        header.put("X-CurTime", X_CurTime);
+        header.put("X-CheckSum", X_CheckSum);
+        header.put("X-Appid", X_Appid);
+        return header;
+    }
+
+
+    public static String md5(String string) {
+        if (TextUtils.isEmpty(string)) {
+            return "";
+        }
+        MessageDigest md5 = null;
+        try {
+            md5 = MessageDigest.getInstance("MD5");
+            byte[] bytes = md5.digest(string.getBytes());
+            String result = "";
+            for (byte b : bytes) {
+                String temp = Integer.toHexString(b & 0xff);
+                if (temp.length() == 1) {
+                    temp = "0" + temp;
+                }
+                result += temp;
+            }
+            return result;
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 }
